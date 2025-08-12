@@ -1,0 +1,91 @@
+NAME=flac
+VERSION=1.4.3
+RELEASE=1
+LICENSE="BSD-3-Clause AND GPL-2.0-or-later AND GFDL-1.1-or-later"
+
+DESCRIPTION="Free Lossless Audio Codec"
+HOMEPAGE="http://www.xiph.org"
+SRC_URI="http://downloads.xiph.org/releases/flac/${P}.tar.xz"
+
+#GIT_URI="git://git.xiph.org/flac.git"
+#GIT_TAG=1.3.1
+#inherit git
+
+BUILD_REQUIRES="gettext-devel libogg-devel nasm"
+BUILD_REQUIRES+=" autoconf2.5 automake1.15 libtool binutils gcc-core gcc-g++"
+
+if defined ARCH_x86_64; then
+  BUILD_REQUIRES+=" libiconv-devel"
+else
+  BUILD_REQUIRES+=" libiconv"
+fi
+
+SUMMARY="Free Lossless Audio Codec"
+DESCRIPTION="FLAC is an Open Source lossless audio codec developed by Josh Coalson."
+CATEGORY=Audio
+PKG_NAMES="$PN flac-devel flac-docs libFLAC12 libFLAC++10"
+
+flac_CONTENTS="usr/bin/*.exe \
+--exclude=usr/share/doc/${PN}/html --exclude=usr/share/doc/${PN}/FLAC.tag usr/share/doc \
+usr/share/man"
+
+flac_devel_SUMMARY="${SUMMARY} (development)"
+flac_devel_CATEGORY="${CATEGORY} Libs Devel"
+flac_devel_CONTENTS="usr/include usr/lib/*.a usr/lib/pkgconfig usr/share/aclocal usr/share/doc/${PN}/FLAC.tag"
+
+flac_docs_SUMMARY="${SUMMARY} (HTML documentation)"
+flac_docs_CONTENTS="usr/share/doc/${PN}/html"
+
+libFLAC12_SUMMARY="${SUMMARY} (C runtime)"
+libFLAC12_CATEGORY="${CATEGORY} Libs"
+libFLAC12_CONTENTS="usr/bin/cygFLAC-12.dll"
+
+libFLAC__10_SUMMARY="${SUMMARY} (C++ runtime)"
+libFLAC__10_CATEGORY="${CATEGORY} Libs"
+libFLAC__10_CONTENTS="usr/bin/cygFLAC++-10.dll"
+
+DIFF_EXCLUDES='Makefile.in aclocal.m4 config.guess config.h.in config.sub configure depcomp install-sh ltmain.sh missing'
+
+CYGCONF_ARGS="
+          --disable-altivec
+          --disable-oggtest
+          --disable-xmms-plugin
+          --without-libiconv-prefix"
+
+src_install() {
+  cd ${B}
+  cyginstall
+
+  cd ${S}
+  dodoc COPYING.*
+
+  #mv ${D}/usr/share/doc/${PN}-${PV}/* ${D}/usr/share/doc/${PN}
+}
+
+src_test() {
+  # Check for running as admin
+  rm -f ${B}/.check
+  echo 1 > ${B}/.check
+  chmod -w ${B}/.check
+  { echo 2 > ${B}/.check; } 2>/dev/null || true
+  local x=$(cat ${B}/.check)
+  rm -f ${B}/.check
+
+  if [ "$x" = "2" ]; then
+    error "The tests will fail when running as admin. Use cygdrop".
+    return
+  fi
+
+  # The tests don't seem to work when building in a separate build
+  # directory. Copy the test directory to the build directory so
+  # all the files required by the tests are available.
+  cp -r ${S}/test ${B}
+  cd ${B}
+  cygtest
+}
+
+# Local Variables:
+# fill-column: 72
+# mode: sh
+# sh-indentation: 2
+# End:
